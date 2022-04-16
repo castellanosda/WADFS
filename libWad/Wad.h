@@ -30,7 +30,6 @@ class Wad
         int n_descriptors;
         int offset;
         Lump* lumps;
-        bool deleted;
         node* root;
 
     public:

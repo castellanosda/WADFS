@@ -108,6 +108,7 @@ Wad* Wad::loadWad(const string &path){
             {
                 char namespace[9];
                 strcpy(namespace, lump->name);
+                int o = 0;
                 
             }
             
