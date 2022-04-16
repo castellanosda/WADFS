@@ -4,7 +4,7 @@
 
 int main()
 {
-    std::string path = "./wad_files/sample1.wad";
+    std::string path = "./wad_files/DOOM1.WAD";
     Wad* doofus = Wad::loadWad(path);
 
     delete doofus;

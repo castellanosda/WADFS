@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <string.h>
+#include <stack>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -16,7 +17,6 @@ Wad::Wad()
     strcpy(magic, "goo");
     n_descriptors = 0;
     offset = 0;
-    deleted = false;
     root = new node(nullptr, nullptr);
 }
 
@@ -80,15 +80,19 @@ Wad* Wad::loadWad(const string &path){
 
     //create dir tree and load data into lumps
     node* current_node = loader->root;
+    stack<char*> ns_stack;
+
     for(int i = 0; i < loader->n_descriptors; i++)
     {
         Lump* lump = &loader->lumps[i];
 
+        //Markers
         if (lump->length == 0)
         {
             //E#M# marker -> next 10 lumps are going to be in this directory
             if (lump->name[0] == 'E' && lump->name[2] == 'M' && strlen(lump->name) == 4)
             {
+                printf("Map Marker: %s\n", lump->name);
                 //adding marker as child to current node
                 node* map_marker = new node(lump, current_node);
                 current_node->children.push_back(map_marker);
@@ -97,29 +101,63 @@ Wad* Wad::loadWad(const string &path){
                 current_node = map_marker;
 
                 //adding the 10 map elements to the children vector
-                for(i = i + 1; i < i + 10; i++)
-                    current_node->children.push_back(new node(&loader->lumps[i], current_node));
+                for(int j = 0; j < 10; j++)
+                {
+                    current_node->children.push_back(new node(&loader->lumps[++i], current_node));
+
+                    //load data
+                    loader->lumps[i].data = new char[loader->lumps[i].length];
+                    lseek(fd, loader->lumps[i].offset, SEEK_SET);
+                    read(fd, loader->lumps[i].data, loader->lumps[i].length);
+
+                    cout << loader->lumps[i].name << endl;
+                }
                     
                 //going back up to marker parent
                 current_node = current_node->parent;
             }
             
-            else if(strstr(lump->name, "_START" != nullptr)
+            else if(strstr(lump->name, "_START") != nullptr)
             {
-                char namespace[9];
-                strcpy(namespace, lump->name);
-                int o = 0;
-                
+                printf("Namespace starter: %s\n", lump->name);
+                //obtains namespace name
+                char*  name_space = new char[9];
+                strcpy(name_space, lump->name);
+                strtok(name_space, "_");
+                strcat(name_space, "_END");
+
+                //add namespace to stack
+                ns_stack.push(name_space);
+
+                //create namespace node
+                node* ns_node = new node(lump, current_node);
+                current_node = ns_node;
+            }
+
+            else if(strcmp(lump->name, ns_stack.top()) == 0)
+            {
+                printf("Namespace ender: %s\n", lump->name);
+                current_node = current_node->parent;
+                ns_stack.pop();
             }
             
         }
 
-        //load data
-        lump->data = new char[lump->length];
-        lseek(fd, lump->offset, SEEK_SET);
-        read(fd, lump->data, loader->lumps[i].length);
+        //data
+        else
+        {
+            current_node->children.push_back(new node(lump, current_node));
 
-        //cout << loader->lumps[i].data << endl;
+            //load data
+            lump->data = new char[lump->length];
+            lseek(fd, lump->offset, SEEK_SET);
+            read(fd, lump->data, loader->lumps[i].length);
+
+            cout << lump->name << endl;
+        }
+
+
+
     }
 
     close(fd);
