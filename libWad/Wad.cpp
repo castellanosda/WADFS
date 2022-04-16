@@ -17,6 +17,7 @@ Wad::Wad()
     n_descriptors = 0;
     offset = 0;
     deleted = false;
+    root = new node(nullptr, nullptr);
 }
 
 void Wad::operator delete(void* w)
@@ -76,14 +77,45 @@ Wad* Wad::loadWad(const string &path){
         cout << loader->lumps[i].name << " | offset: " << loader->lumps[i].offset << " length: " << loader->lumps[i].length << endl;
     }
 
-    //load data into lumps
+    //create dir tree and load data into lumps
+    node* current_node = loader->root;
     for(int i = 0; i < loader->n_descriptors; i++)
     {
-        loader->lumps[i].data = new char[loader->lumps[i].length];
-        
-        //read data
-        lseek(fd, loader->lumps[i].offset, SEEK_SET);
-        read(fd, loader->lumps[i].data, loader->lumps[i].length);
+        Lump* lump = &loader->lumps[i];
+
+        if (lump->length == 0)
+        {
+            //E#M# marker -> next 10 lumps are going to be in this directory
+            if (lump->name[0] == 'E' && lump->name[2] == 'M' && strlen(lump->name) == 4)
+            {
+                //adding marker as child to current node
+                node* map_marker = new node(lump, current_node);
+                current_node->children.push_back(map_marker);
+
+                //switching to map marker
+                current_node = map_marker;
+
+                //adding the 10 map elements to the children vector
+                for(i = i + 1; i < i + 10; i++)
+                    current_node->children.push_back(new node(&loader->lumps[i], current_node));
+                    
+                //going back up to marker parent
+                current_node = current_node->parent;
+            }
+            
+            else
+            {
+
+            }
+            
+        }
+
+        //load data
+        lump->data = new char[lump->length];
+        lseek(fd, lump->offset, SEEK_SET);
+        read(fd, lump->data, loader->lumps[i].length);
+
+        //cout << loader->lumps[i].data << endl;
     }
 
     close(fd);

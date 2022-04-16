@@ -13,6 +13,16 @@ struct Lump {
     Lump() : offset(0), length(0), name("\0") {}
 };
 
+struct node
+{
+    Lump* element;
+
+    node* parent;
+    vector<node*> children;
+
+    node(Lump* e, node* p) : element(e), parent(p) {}
+};
+
 class Wad
 {
     private:
@@ -21,6 +31,8 @@ class Wad
         int offset;
         Lump* lumps;
         bool deleted;
+        node* root;
+
     public:
         Wad();
         static void operator delete (void* w);
