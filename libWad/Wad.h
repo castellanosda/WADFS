@@ -7,7 +7,7 @@ using namespace std;
 struct Lump {
     int offset;
     int length;
-    char name[8];
+    char name[9];
     char* data;
 
     Lump() : offset(0), length(0), name("\0") {}

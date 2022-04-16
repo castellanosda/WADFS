@@ -72,6 +72,7 @@ Wad* Wad::loadWad(const string &path){
         //name
         read(fd, buffer, 8);
         strcpy(loader->lumps[i].name, buffer);
+        loader->lumps[i].name[8] = '\0';
         memset(buffer, 0, 8);
 
         cout << loader->lumps[i].name << " | offset: " << loader->lumps[i].offset << " length: " << loader->lumps[i].length << endl;
@@ -103,9 +104,11 @@ Wad* Wad::loadWad(const string &path){
                 current_node = current_node->parent;
             }
             
-            else
+            else if(strstr(lump->name, "_START" != nullptr)
             {
-
+                char namespace[9];
+                strcpy(namespace, lump->name);
+                
             }
             
         }
