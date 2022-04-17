@@ -43,4 +43,5 @@ class Wad
         int getContents(const string &path, char *buffer, int length, int offset = 0);
         int getDirectory(const string &path, vector<string> *directory);
         void deletePrivate();
+        node* getNode(const string &path);
 };

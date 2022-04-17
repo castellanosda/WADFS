@@ -48,10 +48,6 @@ Wad* Wad::loadWad(const string &path){
     read(fd, buffer, 4);
     loader->offset = *(int*) buffer;
 
-    cout << "magic is " << loader->magic << endl;
-    cout << "number of descriptors is " << loader->n_descriptors << endl;
-    cout << "offset is " << loader->offset << endl;
-
     lseek(fd, loader->offset, SEEK_SET);
     memset(buffer, 0,8);
 
@@ -74,8 +70,6 @@ Wad* Wad::loadWad(const string &path){
         strcpy(loader->lumps[i].name, buffer);
         loader->lumps[i].name[8] = '\0';
         memset(buffer, 0, 8);
-
-        cout << loader->lumps[i].name << " | offset: " << loader->lumps[i].offset << " length: " << loader->lumps[i].length << endl;
     }
 
     //create dir tree and load data into lumps
@@ -92,7 +86,6 @@ Wad* Wad::loadWad(const string &path){
             //E#M# marker -> next 10 lumps are going to be in this directory
             if (lump->name[0] == 'E' && lump->name[2] == 'M' && strlen(lump->name) == 4)
             {
-                printf("Map Marker: %s\n", lump->name);
                 //adding marker as child to current node
                 node* map_marker = new node(lump, current_node);
                 current_node->children.push_back(map_marker);
@@ -109,8 +102,6 @@ Wad* Wad::loadWad(const string &path){
                     loader->lumps[i].data = new char[loader->lumps[i].length];
                     lseek(fd, loader->lumps[i].offset, SEEK_SET);
                     read(fd, loader->lumps[i].data, loader->lumps[i].length);
-
-                    cout << loader->lumps[i].name << endl;
                 }
                     
                 //going back up to marker parent
@@ -119,7 +110,6 @@ Wad* Wad::loadWad(const string &path){
             
             else if(strstr(lump->name, "_START") != nullptr)
             {
-                printf("Namespace starter: %s\n", lump->name);
                 //obtains namespace name
                 char*  name_space = new char[9];
                 strcpy(name_space, lump->name);
@@ -138,7 +128,6 @@ Wad* Wad::loadWad(const string &path){
 
             else if(strcmp(lump->name, ns_stack.top()) == 0)
             {
-                printf("Namespace ender: %s\n", lump->name);
                 current_node = current_node->parent;
                 ns_stack.pop();
             }
@@ -154,16 +143,11 @@ Wad* Wad::loadWad(const string &path){
             lump->data = new char[lump->length];
             lseek(fd, lump->offset, SEEK_SET);
             read(fd, lump->data, loader->lumps[i].length);
-
-            cout << lump->name << endl;
         }
 
 
 
     }
-
-    for (int i = 0; i < loader->root->children.size(); i++)
-        cout << loader->root->children[i]->element->name << endl;
 
     close(fd);
 
@@ -171,27 +155,69 @@ Wad* Wad::loadWad(const string &path){
 }
 
 string Wad::getMagic(){
-    return this->magic;
+    return string(this->magic);
 }
 
 bool Wad::isContent(const string &path){
-    return false;
+    node* content = getNode(path);
+
+    if(content == nullptr)
+        return false;
+
+    if(content->element->length == 0)
+        return false;
+
+    return true;
 }
 
 bool Wad::isDirectory(const string &path){
-    return false;
+    node* content = getNode(path);
+
+    if(content == nullptr)
+        return false;
+
+    if(content->element->length != 0)
+        return false;
+
+    return true;
 }
 
 int Wad::getSize(const string &path){
-    return 0;
+    node* lump = getNode(path);
+
+    if(lump == nullptr)
+        return -1;
+
+    return lump->element->length;
 }
 
 int Wad::getContents(const string &path, char *buffer, int length, int offset /*= 0*/){
-    return 0;
+    node* lump = getNode(path);
+
+    if(lump == nullptr)
+        return -1;
+
+    int bytes;
+    if(length > lump->element->length - offset)
+        bytes = lump->element->length - offset;
+    else
+        bytes = length;
+
+    strcpy(buffer, (lump->element->data + offset));
+
+    return bytes;
 }
 
 int Wad::getDirectory(const string &path, vector<string> *directory){
-    return 0;
+    node* dir = getNode(path);
+
+    if(dir == nullptr)
+        return -1;
+
+    for(int i = 0; i < dir->children.size(); i++)
+        directory->push_back(dir->children[i]->element->name);
+
+    return dir->children.size();
 }
 
 void Wad::deletePrivate()
@@ -201,4 +227,36 @@ void Wad::deletePrivate()
         delete[] lumps[i].data;
     }
     delete[] lumps;
+}
+
+node* Wad::getNode(const string &path)
+{
+    vector<string> steps;
+    char* token = strtok(const_cast<char*>(path.c_str()), "/");
+    while(token != nullptr)
+    {
+        steps.push_back(string(token));
+        token = strtok(nullptr, "/");
+    }
+
+    node* traveler = root;
+    for(int i = 0; i < steps.size(); i++)
+    {
+        bool fish = false;
+        for (auto &x : traveler->children)
+        {
+            if(x->element->name == steps[i])
+            {
+                traveler = x;
+                fish = true;
+                break;
+            }
+        }
+        if(fish)
+            continue;
+
+        return nullptr;
+    }
+
+    return traveler;
 }
