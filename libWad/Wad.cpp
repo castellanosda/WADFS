@@ -131,7 +131,9 @@ Wad* Wad::loadWad(const string &path){
 
                 //create namespace node
                 node* ns_node = new node(lump, current_node);
+                current_node->children.push_back(ns_node);
                 current_node = ns_node;
+
             }
 
             else if(strcmp(lump->name, ns_stack.top()) == 0)
@@ -159,6 +161,9 @@ Wad* Wad::loadWad(const string &path){
 
 
     }
+
+    for (int i = 0; i < loader->root->children.size(); i++)
+        cout << loader->root->children[i]->element->name << endl;
 
     close(fd);
 
