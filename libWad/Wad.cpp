@@ -161,6 +161,9 @@ string Wad::getMagic(){
 bool Wad::isContent(const string &path){
     node* content = getNode(path);
 
+    if(content == root || content->parent == nullptr)
+        return false;
+
     if(content == nullptr)
         return false;
 
@@ -172,6 +175,9 @@ bool Wad::isContent(const string &path){
 
 bool Wad::isDirectory(const string &path){
     node* content = getNode(path);
+
+    if(content == root || content->parent == nullptr)
+        return true;
 
     if(content == nullptr)
         return false;
@@ -231,6 +237,12 @@ void Wad::deletePrivate()
 
 node* Wad::getNode(const string &path)
 {
+    if(path == "/")
+    {
+        return root;
+    }
+        
+
     vector<string> steps;
     char* token = strtok(const_cast<char*>(path.c_str()), "/");
     while(token != nullptr)
