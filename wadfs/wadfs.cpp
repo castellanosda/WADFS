@@ -81,9 +81,7 @@ static struct fuse_operations wadfs_operations = {
 };
 
 int main(int argc, char* argv[]) {
-    file = Wad::loadWad(std::string(argv[2]));
-    argv[argc-2] = argv[argc-1];
-    argv[argc-1] = NULL;
-    argc--;
+    file = Wad::loadWad(std::string(argv[1]));
+    strcpy(argv[1], "-f");
     return fuse_main(argc, argv, &wadfs_operations, NULL);
 }
