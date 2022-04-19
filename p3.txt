@@ -1,0 +1,27 @@
+.TH WADFS
+.SH NAME
+P3: File Systems
+.SH SYNOPSIS
+The FUSE API was used to create a user space file system using a custom class which read .wad files.
+.SH DESCRIPTION
+.SS Wad class
+The Wad class dynamically reads each wad file system into memory. Once the header information is obtained, the lseek and read are used to move to the descriptor.
+The descriptor gives the offset, length, and name of each lump which are held in a lump struct. Then, each lump is visited in order and designated as a directory or file using the length and name to distinguisg between map/namespace markers.
+Data at the offset is read with length bytes and placed into the lump struct dynamically. The directory is stored as a tree with node structs containing a lump pointer, its parent, and a vector of its children.
+Directories will store child nodes in the vector, and files will have empty vectors. E#M# directories will always place the next 10 descriptors as children, and name spaces will place every element in its children between its _START and _END markers.
+Member functions take in a path to check for content/directories or get directory/file data. Memory is deallocated through a "post-order" traversal of the directory tree.
+.SS Daemon
+The daemon is implemented with the FUSE API. Its options struct will be implementing the getattr, open, read, readdir, and destroy callbacks. The daemon takes in two arguments, the path to the wad and the mount directory.
+Before the arguments are passed into fuse_main, the wad file is loaded and pointed to by a static variable. The -f flag replaces the argument for the ability to continue running in the background. The getattr callback sets the mode and links of the path passed if valid. This will be S_IFDIR with 2 links for directories and S_IFREG with 1 link for files. 
+The open callback needed to be added, but simply returns 0. Read uses the getContents member function to copy the contents of the file into a buffer used by the FUSE API. Readdir uses the getDirectory member function to obatin a string vector of element names within the directory located at path.
+Finally, delete is called once the daemon is closed and uses and overridden delete operator freeing allocated memory
+.SS Using the daemon
+After installing fuse, set permissions using sudo chmod 666 /dev/fuse. Once the daemon is run with ./wadfs [absolute/relative wad file address] [absolute mount address], the userspace filesystem may be used by opening another terminal and accessing the mounted directory. Functionality is read only. Unmount directory if a different wad file is to be read using fusermount -uz [mount dir name].
+.SH TESTING
+Testing used given WADs on a clean VM. Each was constructed into userspace with FUSE and results were compared using the SLADE program. The provided wad_dump.cpp file was also used to test the constructor wad library.
+.SH BUGS
+No found bugs!
+.SH LINK
+https://youtu.be/MQ62MWcHKA0
+.SH AUTHOR
+Daniel Castellanos
